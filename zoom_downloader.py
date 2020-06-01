@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 import jwt
 from datetime import datetime
+import time
+from dateutil import tz, parser
 
 
 # URLs.
@@ -48,13 +50,14 @@ def main():
 
     # Download recordings.
     for meeting in recordings_data['meetings']:
-        meeting_id = meeting['id']
-        start_time = meeting['start_time']
+        start_time = parser.parse(meeting['start_time'])
+        start_time = convert_utc_to_local(start_time)
+        start_time = start_time.strftime('%Y-%m-%d_%H%M')
         for recording in meeting['recording_files']:
             file_type = recording['file_type'].lower()
             file_size = sizeof_fmt(recording['file_size'])
             url = recording['download_url']
-            filename = f'{start_time}_{meeting_id}.{file_type}'
+            filename = f'{start_time}.{file_type}'
             filename = filename.replace(':', '')
             print(f'Downloading {filename} ({file_size})', end=' ... ')
             download_file(url, filename)
@@ -106,6 +109,11 @@ def download_file(url, local_filename):
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
+
+
+def convert_utc_to_local(t):
+    assert t.tzinfo == tz.tzutc()
+    return t.astimezone(tz.tzlocal())
 
 
 if __name__ == '__main__':
