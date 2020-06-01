@@ -47,13 +47,15 @@ def main():
     )
 
     recordings_data = response.json()
+    pprint(recordings_data)
 
     # Download recordings.
     for meeting in recordings_data['meetings']:
-        start_time = parser.parse(meeting['start_time'])
-        start_time = convert_utc_to_local(start_time)
-        start_time = start_time.strftime('%Y-%m-%d_%H%M')
         for recording in meeting['recording_files']:
+            start_time = parser.parse(recording['recording_start'])
+            start_time = convert_utc_to_local(start_time)
+            start_time = start_time.strftime('%Y-%m-%d_%H%M')
+
             file_type = recording['file_type'].lower()
             file_size = sizeof_fmt(recording['file_size'])
             url = recording['download_url']

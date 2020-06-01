@@ -1,2 +1,2 @@
 pyjwt
-dateutil
+py-dateutil
