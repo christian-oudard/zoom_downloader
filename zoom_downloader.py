@@ -6,6 +6,7 @@ import jwt
 from datetime import datetime
 import time
 from dateutil import tz, parser
+import sys
 
 
 # URLs.
@@ -62,6 +63,7 @@ def main():
             filename = f'{start_time}.{file_type}'
             filename = filename.replace(':', '')
             print(f'Downloading {filename} ({file_size})', end=' ... ')
+            sys.stdout.flush()
             download_file(url, filename)
             print('Done')
 
