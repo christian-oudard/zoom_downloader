@@ -45,7 +45,6 @@ def main():
     )
 
     recordings_data = response.json()
-    pprint(recordings_data)
 
     # Download recordings.
     for meeting in recordings_data['meetings']:
@@ -56,6 +55,7 @@ def main():
             file_size = sizeof_fmt(recording['file_size'])
             url = recording['download_url']
             filename = f'{start_time}_{meeting_id}.{file_type}'
+            filename = filename.replace(':', '')
             print(f'Downloading {filename} ({file_size})', end=' ... ')
             download_file(url, filename)
             print('Done')

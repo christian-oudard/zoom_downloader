@@ -3,6 +3,6 @@
 # The email address you use to log into Zoom.
 user_email = ''
 
-# The API key and secret from https://zoom.us/profile/setting, under "Integration Authentication".
+# Create a JWT app in https://marketplace.zoom.us/develop/apps/, and put the API key and secret here.
 api_key = ''
 api_secret = ''
