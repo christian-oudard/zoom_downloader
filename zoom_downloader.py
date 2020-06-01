@@ -54,7 +54,7 @@ def main():
         for recording in meeting['recording_files']:
             start_time = parser.parse(recording['recording_start'])
             start_time = convert_utc_to_local(start_time)
-            start_time = start_time.strftime('%Y-%m-%d_%H%M')
+            start_time = start_time.strftime('%Y-%m-%d_%H%M%S')
 
             file_type = recording['file_type'].lower()
             file_size = sizeof_fmt(recording['file_size'])
