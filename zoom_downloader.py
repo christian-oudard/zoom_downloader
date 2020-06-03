@@ -3,10 +3,11 @@ from pprint import pprint
 import importlib.util
 from pathlib import Path
 import jwt
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import time
 from dateutil import tz, parser
 import sys
+import os.path
 
 
 # URLs.
@@ -37,42 +38,61 @@ def main():
     user_id = profile_data['id']
 
     # List recordings.
+    print('Getting recordings for the past 6 months.')
     url = base_url + recordings.format(user_id=user_id)
-    response = requests.get(
-        url,
-        headers=zoom_request_headers(),
-        params={
-            'from': '1970-01-01',
+    meetings_data = []
+
+    range_size = 30
+    for i in range(0, 6):
+        end_date = date.today() - timedelta(days=i*range_size)
+        start_date = end_date - timedelta(days=range_size - 1)
+        end_date = end_date.strftime('%Y-%m-%d')
+        start_date = start_date.strftime('%Y-%m-%d')
+        print(f'Requesting recordings from {start_date} to {end_date}')
+
+        params = {
+            'from': start_date,
+            'to': end_date,
             'page_size': 300,
         }
+        response = requests.get(
+            url,
+            headers=zoom_request_headers(),
+            params=params,
+        )
+
+        recordings_data = response.json()
+        print('Got {} meetings.'.format(len(recordings_data['meetings'])))
+        meetings_data.extend(recordings_data['meetings'])
+
+    total_count = sum(
+        1
+        for meeting in meetings_data
+        for recording in meeting['recording_files']
     )
 
-    recordings_data = response.json()
-    pprint(recordings_data)
+    print()
+    print(f'Downloading {total_count} recordings.')
 
     # Download recordings.
-    for meeting in recordings_data['meetings']:
+    for meeting in meetings_data:
         for recording in meeting['recording_files']:
             start_time = parser.parse(recording['recording_start'])
             start_time = convert_utc_to_local(start_time)
             start_time = start_time.strftime('%Y-%m-%d_%H%M%S')
 
             file_type = recording['file_type'].lower()
-            file_size = sizeof_fmt(recording['file_size'])
             url = recording['download_url']
             filename = f'{start_time}.{file_type}'
             filename = filename.replace(':', '')
-            print(f'Downloading {filename} ({file_size})', end=' ... ')
-            sys.stdout.flush()
-            download_file(url, filename)
-            print('Done')
+            download_file(url, filename, recording['file_size'])
 
 
 def sizeof_fmt(num, suffix='B'):
     """https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size"""
     for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
-            return "%3.0f %s%s" % (num, unit, suffix)
+            return "%3.1f %s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Y', suffix)
 
@@ -105,7 +125,15 @@ def get_jwt_token(algorithm='HS256', expiration_seconds=30):
     return token_bytes.decode('utf8')
 
 
-def download_file(url, local_filename):
+def download_file(url, local_filename, file_size):
+    if os.path.exists(local_filename):
+        print(f'{local_filename} already exists.')
+        return
+
+    file_size = sizeof_fmt(file_size)
+    print(f'Downloading {local_filename} ({file_size})', end=' ... ')
+    sys.stdout.flush()
+
     token = get_jwt_token()
 
     with requests.get(url, stream=True, params={'access_token': token}) as r:
@@ -113,6 +141,8 @@ def download_file(url, local_filename):
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
+
+    print('Done')
 
 
 def convert_utc_to_local(t):
