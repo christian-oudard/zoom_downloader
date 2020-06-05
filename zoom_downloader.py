@@ -85,7 +85,13 @@ def main():
             url = recording['download_url']
             filename = f'{start_time}.{file_type}'
             filename = filename.replace(':', '')
-            download_file(url, filename, recording['file_size'])
+            try:
+                download_file(url, filename, recording['file_size'])
+            except requests.HTTPError as e:
+                delete_empty_file(filename)
+                print(f'Error downloading file at {url}')
+                print(e)
+                continue
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -140,9 +146,21 @@ def download_file(url, local_filename, file_size):
         r.raise_for_status()
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
+                if b'<!doctype html>' in chunk or b'"errorCode"' in chunk:
+                    raise requests.HTTPError('Got an error page.')
                 f.write(chunk)
 
     print('Done')
+
+
+def delete_empty_file(local_filename):
+    path = Path(local_filename)
+    try:
+        size = path.stat().st_size
+    except FileNotFoundError:
+        return
+    if size == 0:
+        path.unlink()
 
 
 def convert_utc_to_local(t):
