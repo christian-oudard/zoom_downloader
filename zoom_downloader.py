@@ -9,6 +9,8 @@ from dateutil import tz, parser
 import sys
 import os.path
 
+# How many months of videos to download.
+NUM_MONTHS = 6
 
 # URLs.
 base_url = 'https://api.zoom.us/v2'
@@ -38,12 +40,12 @@ def main():
     user_id = profile_data['id']
 
     # List recordings.
-    print('Getting recordings for the past 6 months.')
+    print('Getting recordings for the past {} months.'.format(NUM_MONTHS))
     url = base_url + recordings.format(user_id=user_id)
     meetings_data = []
 
     range_size = 30
-    for i in range(0, 6):
+    for i in range(0, NUM_MONTHS):
         end_date = date.today() - timedelta(days=i*range_size)
         start_date = end_date - timedelta(days=range_size - 1)
         end_date = end_date.strftime('%Y-%m-%d')
